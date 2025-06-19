@@ -1431,7 +1431,7 @@
             try {
                 // Get total records
                 const transactions = await supabaseClient.query('beauty_salon_transactions', {
-                    params: '?select=count'
+                    params: '?select=*'
                 });
                 
                 // Get recent transactions
