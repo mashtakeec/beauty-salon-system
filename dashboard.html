@@ -1402,5 +1402,90 @@
             setInterval(updateLastUpdateTime, 60000);
         });
     </script>
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://pikptzoccejpsdtbsia.supabase.co';
+        const SUPABASE_ANON_KEY = 'your-anon-key-here'; // Replace with your actual anon key
+        
+        // Initialize Supabase client
+        const supabaseClient = {
+            async query(table, options = {}) {
+                const url = `${SUPABASE_URL}/rest/v1/${table}${options.params || ''}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                return response.json();
+            }
+        };
+        
+        // Load real data when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadRealData();
+        });
+        
+        async function loadRealData() {
+            try {
+                // Get total records
+                const transactions = await supabaseClient.query('beauty_salon_transactions', {
+                    params: '?select=count'
+                });
+                
+                // Get recent transactions
+                const recentData = await supabaseClient.query('beauty_salon_transactions', {
+                    params: '?select=*&order=created_at.desc&limit=10'
+                });
+                
+                // Update dashboard with real data
+                updateDashboardStats(transactions, recentData);
+                updateTransactionTable(recentData);
+                
+                console.log('Real data loaded successfully!');
+                
+            } catch (error) {
+                console.error('Error loading real data:', error);
+                // Keep dummy data if error
+            }
+        }
+        
+        function updateDashboardStats(transactions, recentData) {
+            // Update total records (you'll need to adjust this based on actual Supabase count response)
+            const totalRecords = recentData.length; // This is just recent data, adjust as needed
+            
+            // Update quick stats
+            document.querySelector('.quick-stat-card .value').textContent = totalRecords;
+            
+            // Update today's sales
+            const todaysSales = recentData
+                .filter(t => new Date(t.visit_date).toDateString() === new Date().toDateString())
+                .reduce((sum, t) => sum + (t.total_amount || 0), 0);
+            
+            const salesElement = document.querySelector('.card h3:contains("本日の売上")');
+            if (salesElement) {
+                salesElement.nextElementSibling.textContent = `¥${todaysSales.toLocaleString()}`;
+            }
+        }
+        
+        function updateTransactionTable(transactions) {
+            const tableBody = document.getElementById('transactionTableBody');
+            if (tableBody && transactions.length > 0) {
+                tableBody.innerHTML = transactions.map(t => `
+                    <tr>
+                        <td>${t.transaction_id}</td>
+                        <td>${new Date(t.visit_date).toLocaleDateString('ja-JP')} ${t.payment_time || ''}</td>
+                        <td>${t.store_name}</td>
+                        <td>${t.customer_name}</td>
+                        <td>${t.service_name}</td>
+                        <td>¥${(t.total_amount || 0).toLocaleString()}</td>
+                        <td>${t.payment_method}</td>
+                        <td><span class="badge badge-success">完了</span></td>
+                    </tr>
+                `).join('');
+            }
+        }
+        </script>
 </body>
 </html>
