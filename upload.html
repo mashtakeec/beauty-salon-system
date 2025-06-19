@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美容室データアップロード</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #5a67d8;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .upload-area.dragover {
+            border-color: #48bb78;
+            background: rgba(72, 187, 120, 0.1);
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .progress-section {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .status-success {
+            background: #d4f4dd;
+            color: #1e7e34;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .file-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .supported-formats {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .format-list {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .format-item {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .navigation {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 データアップロード</h1>
+            <p>Beauty Merit CSVファイルまたはExcelファイルをアップロードしてください</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3>ファイルをドラッグ&ドロップ</h3>
+                <p>または、クリックしてファイルを選択</p>
+                <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    ファイルを選択
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls" multiple>
+            </div>
+
+            <div class="supported-formats">
+                <h4>対応ファイル形式</h4>
+                <div class="format-list">
+                    <div class="format-item">📄 CSV</div>
+                    <div class="format-item">📊 XLSX</div>
+                    <div class="format-item">📈 XLS</div>
+                </div>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <h4>ファイル情報</h4>
+                <div id="fileDetails"></div>
+            </div>
+
+            <div class="progress-section" id="progressSection">
+                <h4>処理進行状況</h4>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText">処理中...</div>
+            </div>
+
+            <div class="status-message" id="statusMessage"></div>
+
+            <button type="button" class="upload-btn" id="processBtn" style="display: none;" onclick="processFiles()">
+                📤 データを送信
+            </button>
+        </div>
+
+        <div class="navigation">
+            <a href="index.html" class="nav-link">🏠 ホーム</a>
+            <a href="dashboard.html" class="nav-link">📊 ダッシュボード</a>
+        </div>
+    </div>
+
+    <script>
+        // n8n webhook URL - UPDATE THIS WITH YOUR ACTUAL WEBHOOK URL
+        const N8N_WEBHOOK_URL = 'https://mashtakee.app.n8n.cloud/webhook-test/beauty-salon-upload';
+        
+        let selectedFiles = [];
+        let processedData = [];
+
+        // File input and drag & drop handlers
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileDetails = document.getElementById('fileDetails');
+        const processBtn = document.getElementById('processBtn');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            selectedFiles = files.filter(file => {
+                const extension = file.name.toLowerCase().split('.').pop();
+                return ['csv', 'xlsx', 'xls'].includes(extension);
+            });
+
+            if (selectedFiles.length === 0) {
+                showMessage('対応していないファイル形式です。CSV, XLSX, XLSファイルをアップロードしてください。', 'error');
+                return;
+            }
+
+            displayFileInfo();
+            processBtn.style.display = 'block';
+        }
+
+        function displayFileInfo() {
+            let html = '';
+            selectedFiles.forEach((file, index) => {
+                const size = (file.size / 1024 / 1024).toFixed(2);
+                html += `
+                    <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 5px;">
+                        <strong>${file.name}</strong><br>
+                        <small>サイズ: ${size} MB | 形式: ${file.name.split('.').pop().toUpperCase()}</small>
+                    </div>
+                `;
+            });
+            fileDetails.innerHTML = html;
+            fileInfo.style.display = 'block';
+        }
+
+        async function processFiles() {
+            showProgress();
+            processedData = [];
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                updateProgress((i / selectedFiles.length) * 50, `処理中: ${file.name}`);
+                
+                try {
+                    const csvData = await convertToCSV(file);
+                    processedData.push({
+                        filename: file.name,
+                        csv_data: csvData
+                    });
+                } catch (error) {
+                    showMessage(`エラー: ${file.name} の処理に失敗しました - ${error.message}`, 'error');
+                    return;
+                }
+            }
+
+            // Send to n8n
+            updateProgress(75, 'データベースに送信中...');
+            await sendToN8N();
+        }
+
+        async function convertToCSV(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const extension = file.name.toLowerCase().split('.').pop();
+                        
+                        if (extension === 'csv') {
+                            resolve(e.target.result);
+                        } else if (['xlsx', 'xls'].includes(extension)) {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            const csvData = XLSX.utils.sheet_to_csv(worksheet);
+                            resolve(csvData);
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('ファイル読み込みエラー'));
+                
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    reader.readAsText(file, 'utf-8');
+                } else {
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+        }
+
+        async function sendToN8N() {
+            try {
+                for (const data of processedData) {
+                    const response = await fetch(N8N_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                }
+
+                updateProgress(100, '完了！');
+                showMessage(`成功！${processedData.length}件のファイルが処理されました。`, 'success');
+                
+                // Reset after success
+                setTimeout(() => {
+                    resetUpload();
+                }, 3000);
+
+            } catch (error) {
+                showMessage(`送信エラー: ${error.message}`, 'error');
+                console.error('送信エラー:', error);
+            }
+        }
+
+        function showProgress() {
+            document.getElementById('progressSection').style.display = 'block';
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('statusMessage');
+            messageEl.textContent = message;
+            messageEl.className = `status-message status-${type}`;
+            messageEl.style.display = 'block';
+        }
+
+        function resetUpload() {
+            selectedFiles = [];
+            processedData = [];
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            processBtn.style.display = 'none';
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('statusMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
