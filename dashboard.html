@@ -355,6 +355,7 @@
             <button class="tab" onclick="showSection('analytics')">📈 分析</button>
             <button class="tab" onclick="showSection('rankings')">🏆 ランキング</button>
             <button class="tab" onclick="showSection('realtime')">⚡ リアルタイム</button>
+            <button class="tab" onclick="showSection('ai-analysis')">🤖 AI分析</button>
         </div>
 
         <!-- 概要セクション -->
@@ -433,6 +434,55 @@
                             <span style="color: #718096;">レスポンス時間:</span>
                             <span style="float: right; font-weight: bold;">124ms</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Section -->
+        <div id="ai-analysis" class="content-section">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>🤖 最新AI分析</h3>
+                    <div id="aiAnalysisStatus">
+                        <p>分析データを読み込み中...</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>💰 売上インサイト</h3>
+                    <div id="revenueInsights">
+                        <div class="loading">データを取得中...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>👥 顧客分析</h3>
+                    <div id="customerInsights">
+                        <div class="loading">データを取得中...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>⭐ スタッフパフォーマンス</h3>
+                    <div id="staffInsights">
+                        <div class="loading">データを取得中...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>✂️ サービス分析</h3>
+                    <div id="serviceInsights">
+                        <div class="loading">データを取得中...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>🎯 優先アクション</h3>
+                    <div id="priorityActions">
+                        <div class="loading">データを取得中...</div>
                     </div>
                 </div>
             </div>
@@ -1500,6 +1550,146 @@
                         <td><span class="badge badge-success">完了</span></td>
                     </tr>
                 `).join('');
+            }
+        }
+        // Load AI analysis results
+        async function loadAIAnalysis() {
+            try {
+                // Get latest business reports from Supabase
+                const reports = await supabaseClient.query('business_reports', {
+                    params: '?select=*&order=created_at.desc&limit=1'
+                });
+                
+                if (reports.length > 0) {
+                    const latestReport = reports[0];
+                    const reportData = typeof latestReport.report_data === 'string' 
+                        ? JSON.parse(latestReport.report_data) 
+                        : latestReport.report_data;
+                        
+                    displayAIResults(reportData);
+                } else {
+                    showNoAnalysisMessage();
+                }
+                
+            } catch (error) {
+                console.error('Error loading AI analysis:', error);
+                showNoAnalysisMessage();
+            }
+        }
+
+        function displayAIResults(reportData) {
+            // Update AI analysis status
+            document.getElementById('aiAnalysisStatus').innerHTML = `
+                <p style="color: #48bb78; font-weight: bold;">✅ 分析完了</p>
+                <p><small>最終更新: ${new Date(reportData.report_metadata?.generated_at || Date.now()).toLocaleString('ja-JP')}</small></p>
+                <p>データ品質スコア: <strong>${reportData.report_metadata?.data_quality_score || 'N/A'}%</strong></p>
+            `;
+            
+            // Revenue insights
+            if (reportData.ai_insights?.revenue_insights) {
+                const revenue = reportData.ai_insights.revenue_insights;
+                document.getElementById('revenueInsights').innerHTML = `
+                    <p><strong>現状:</strong> ${revenue.current_performance}</p>
+                    <div style="margin-top: 15px;">
+                        <strong>機会:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${revenue.opportunities?.map(opp => `<li>${opp}</li>`).join('') || '<li>データなし</li>'}
+                        </ul>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <strong>推奨アクション:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${revenue.recommended_actions?.map(action => `<li>${action}</li>`).join('') || '<li>データなし</li>'}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Customer insights
+            if (reportData.ai_insights?.customer_insights) {
+                const customer = reportData.ai_insights.customer_insights;
+                document.getElementById('customerInsights').innerHTML = `
+                    <p><strong>リテンション分析:</strong></p>
+                    <p>${customer.retention_analysis}</p>
+                    <div style="margin-top: 15px;">
+                        <strong>推奨施策:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${customer.loyalty_recommendations?.map(rec => `<li>${rec}</li>`).join('') || '<li>データなし</li>'}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Staff insights
+            if (reportData.ai_insights?.staff_insights) {
+                const staff = reportData.ai_insights.staff_insights;
+                document.getElementById('staffInsights').innerHTML = `
+                    <p><strong>パフォーマンス概要:</strong></p>
+                    <p>${staff.performance_summary}</p>
+                    <div style="margin-top: 15px;">
+                        <strong>改善エリア:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${staff.development_areas?.map(area => `<li>${area}</li>`).join('') || '<li>データなし</li>'}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Service insights
+            if (reportData.ai_insights?.service_insights) {
+                const service = reportData.ai_insights.service_insights;
+                document.getElementById('serviceInsights').innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <strong>人気サービス:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${service.popular_services?.map(svc => `<li>${svc}</li>`).join('') || '<li>データなし</li>'}
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>アップセル機会:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${service.upsell_opportunities?.map(opp => `<li>${opp}</li>`).join('') || '<li>データなし</li>'}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Priority actions
+            if (reportData.ai_insights?.priority_actions) {
+                document.getElementById('priorityActions').innerHTML = `
+                    <ol style="margin: 0; padding-left: 20px;">
+                        ${reportData.ai_insights.priority_actions.map(action => `<li style="margin-bottom: 8px;">${action}</li>`).join('')}
+                    </ol>
+                `;
+            }
+        }
+
+        function showNoAnalysisMessage() {
+            const sections = ['aiAnalysisStatus', 'revenueInsights', 'customerInsights', 'staffInsights', 'serviceInsights', 'priorityActions'];
+            sections.forEach(sectionId => {
+                document.getElementById(sectionId).innerHTML = '<p>まだAI分析結果がありません。データをアップロードして分析を実行してください。</p>';
+            });
+        }
+
+        // Update the main loadRealData function to also load AI analysis
+        async function loadRealData() {
+            try {
+                // Get recent transactions
+                const recentData = await supabaseClient.query('beauty_salon_transactions', {
+                    params: '?select=*&order=created_at.desc&limit=10'
+                });
+                
+                // Update dashboard with real data
+                updateDashboardStats([], recentData);
+                updateTransactionTable(recentData);
+                
+                // Load AI analysis
+                await loadAIAnalysis();
+                
+                console.log('Real data loaded successfully!');
+                
+            } catch (error) {
+                console.error('Error loading real data:', error);
             }
         }
         </script>
