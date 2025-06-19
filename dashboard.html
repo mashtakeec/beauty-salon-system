@@ -1452,21 +1452,37 @@
         }
         
         function updateDashboardStats(transactions, recentData) {
-            // Update total records (you'll need to adjust this based on actual Supabase count response)
-            const totalRecords = recentData.length; // This is just recent data, adjust as needed
+            // Update total records
+            const totalRecords = recentData.length;
             
-            // Update quick stats
-            document.querySelector('.quick-stat-card .value').textContent = totalRecords;
-            
-            // Update today's sales
-            const todaysSales = recentData
-                .filter(t => new Date(t.visit_date).toDateString() === new Date().toDateString())
-                .reduce((sum, t) => sum + (t.total_amount || 0), 0);
-            
-            const salesElement = document.querySelector('.card h3:contains("本日の売上")');
-            if (salesElement) {
-                salesElement.nextElementSibling.textContent = `¥${todaysSales.toLocaleString()}`;
+            // Update quick stats - find the first quick stat card
+            const quickStatCards = document.querySelectorAll('.quick-stat-card .value');
+            if (quickStatCards.length > 0) {
+                quickStatCards[0].textContent = totalRecords;
             }
+            
+            // Calculate today's sales
+            const today = new Date().toDateString();
+            const todaysSales = recentData
+                .filter(t => new Date(t.visit_date).toDateString() === today)
+                .reduce((sum, t) => sum + (parseFloat(t.total_amount) || 0), 0);
+            
+            // Update today's sales - find all stat-value elements and update the first one
+            const statValues = document.querySelectorAll('.stat-value');
+            if (statValues.length > 0) {
+                statValues[0].textContent = `¥${todaysSales.toLocaleString()}`;
+            }
+            
+            // Update transaction count for today
+            const todaysTransactions = recentData.filter(t => 
+                new Date(t.visit_date).toDateString() === today
+            ).length;
+            
+            if (statValues.length > 1) {
+                statValues[1].textContent = todaysTransactions;
+            }
+            
+            console.log(`Updated stats: ${totalRecords} total records, ¥${todaysSales} today's sales`);
         }
         
         function updateTransactionTable(transactions) {
