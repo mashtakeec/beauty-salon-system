@@ -42,7 +42,7 @@ beauty-salon-system/
    ```
    → コミットメッセージを入力してEnter
 
-#### 🇺🇸 English
+#### en English
 
 1. **Open File**
    ```
@@ -78,7 +78,7 @@ deploy-production.bat をダブルクリック
 ```
 → トンネルチェックも自動で行います
 
-#### 🇺🇸 English
+#### en English
 
 ##### Option 1: Manual SSH Tunnel Start
 ```
@@ -109,7 +109,7 @@ Double-click deploy-production.bat
 - **本番サイト**: https://chainon-test.xyz/dashboard.html
 - **一時ファイルは使用しないでください**
 
-### 🇺🇸 English
+### en English
 
 #### About SSH Tunnel
 - **DO NOT close the tunnel window**
@@ -152,7 +152,7 @@ Double-click deploy-production.bat
    - ブラウザのキャッシュをクリア (Ctrl+F5)
    - https://chainon-test.xyz/dashboard.html を確認
 
-### 🇺🇸 English
+### en English
 
 #### Common Issues and Solutions
 
@@ -185,7 +185,7 @@ Double-click deploy-production.bat
 ### 🇯🇵 日本語
 問題が発生した場合は、Ricardo（ricardo.mashtake@gmail.com）に連絡してください。
 
-### 🇺🇸 English
+### en English
 If you encounter any issues, please contact Ricardo (ricardo.mashtake@gmail.com).
 
 ---
@@ -206,7 +206,7 @@ If you encounter any issues, please contact Ricardo (ricardo.mashtake@gmail.com)
 - **ユーザーホーム**: /home/hajime
 - **SSH経由**: ishitomi@59.87.187.40 → hajime@localhost:2223
 
-### 🇺🇸 English
+### en English
 - **Production Server**: chainon-test.xyz
 - **Deploy Path**: /var/www/dashboard/dashboard.html
 - **User Home**: /home/hajime
@@ -228,7 +228,7 @@ quick-sync.bat
 deploy-production.bat
 ```
 
-### 🇺🇸 English
+### en English
 ```bash
 # 1. Open file
 open-cursor.bat
@@ -250,7 +250,7 @@ deploy-production.bat
 - **デプロイ**: SSH/SCP経由での自動デプロイ
 - **バージョン管理**: Git + GitHub
 
-### 🇺🇸 English
+### en English
 - **Frontend**: HTML/CSS/JavaScript + Chart.js
 - **Backend**: Supabase (PostgreSQL)
 - **Deployment**: Automated deployment via SSH/SCP
