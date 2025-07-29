@@ -1,7 +1,7 @@
 # 🏢 美容サロン統合データベース管理システム
 # 🏢 Beauty Salon Integrated Database Management System
 
-> **日本語** | **English**
+> **JP 日本語** | **EN English**
 
 ---
 
@@ -10,10 +10,20 @@
 ```
 beauty-salon-system/
 ├── dashboard.html              # メインファイル（作業用） | Main file (for development)
+│
+├── 🪟 Windows Scripts
 ├── open-cursor.bat            # Cursorエディタでファイルを開く | Open file in Cursor editor
 ├── quick-sync.bat             # Git同期のみ（高速） | Git sync only (fast)
 ├── start-ssh-tunnel.bat       # SSHトンネル開始 | Start SSH tunnel
 ├── deploy-production.bat      # 完全デプロイ（Git + 本番環境） | Full deploy (Git + Production)
+│
+├── 🍎 Mac/Linux Scripts
+├── open-cursor.sh             # Cursorエディタでファイルを開く | Open file in Cursor editor
+├── quick-sync.sh              # Git同期のみ（高速） | Git sync only (fast)
+├── start-ssh-tunnel.sh        # SSHトンネル開始 | Start SSH tunnel
+├── deploy-production.sh       # 完全デプロイ（Git + 本番環境） | Full deploy (Git + Production)
+│
+├── 📖 Documentation
 ├── README.md                  # この説明書 | This documentation
 └── README-JP.md              # 日本語のみの説明書 | Japanese-only documentation
 ```
@@ -24,79 +34,87 @@ beauty-salon-system/
 
 ### 📝 日常的な作業フロー | Daily Workflow
 
-#### 🇯🇵 日本語
+#### JP 日本語
 
+##### 🪟 Windows:
 1. **ファイルを開く**
    ```
    open-cursor.bat をダブルクリック
    ```
-   → Cursorエディタでdashboard.htmlが開きます
 
-2. **ファイルを編集**
-   - 通常通りファイルを編集
-   - 保存（Ctrl+S）
-
-3. **変更をGitHubに同期**
+2. **変更をGitHubに同期**
    ```
    quick-sync.bat をダブルクリック
    ```
-   → コミットメッセージを入力してEnter
 
-#### 🇺🇸 English
+##### 🍎 Mac/Linux:
+1. **ファイルを開く**
+   ```bash
+   ./open-cursor.sh
+   ```
 
+2. **変更をGitHubに同期**
+   ```bash
+   ./quick-sync.sh
+   ```
+
+#### EN English
+
+##### 🪟 Windows:
 1. **Open File**
    ```
    Double-click open-cursor.bat
    ```
-   → Opens dashboard.html in Cursor editor
 
-2. **Edit File**
-   - Edit the file normally
-   - Save (Ctrl+S)
-
-3. **Sync Changes to GitHub**
+2. **Sync Changes to GitHub**
    ```
    Double-click quick-sync.bat
    ```
-   → Enter commit message and press Enter
+
+##### 🍎 Mac/Linux:
+1. **Open File**
+   ```bash
+   ./open-cursor.sh
+   ```
+
+2. **Sync Changes to GitHub**
+   ```bash
+   ./quick-sync.sh
+   ```
 
 ---
 
 ### 🌐 本番環境デプロイ | Production Deployment
 
-#### 🇯🇵 日本語
+#### JP 日本語
 
-##### オプション1: 手動でSSHトンネル開始
-```
-1. start-ssh-tunnel.bat をダブルクリック
-2. deploy-production.bat をダブルクリック
-```
-
-##### オプション2: 自動チェック付きデプロイ
+##### 🪟 Windows:
 ```
 deploy-production.bat をダブルクリック
 ```
-→ トンネルチェックも自動で行います
 
-#### 🇺🇸 English
-
-##### Option 1: Manual SSH Tunnel Start
-```
-1. Double-click start-ssh-tunnel.bat
-2. Double-click deploy-production.bat
+##### 🍎 Mac/Linux:
+```bash
+./deploy-production.sh
 ```
 
-##### Option 2: Auto-check Deploy
+#### EN English
+
+##### 🪟 Windows:
 ```
 Double-click deploy-production.bat
 ```
-→ Automatically checks tunnel connection
+
+##### 🍎 Mac/Linux:
+```bash
+./deploy-production.sh
+```
 
 ---
 
 ## ⚠️ 重要な注意事項 | Important Notes
 
-### 🇯🇵 日本語
+### JP 日本語
 
 #### SSHトンネルについて
 - **トンネルウィンドウは閉じないでください**
@@ -105,11 +123,11 @@ Double-click deploy-production.bat
 - サーバーパス: `/var/www/dashboard/dashboard.html`
 
 #### ファイルの場所
-- **作業ファイル**: `E:\Work\n8n\chainon\git\beauty-salon-system\dashboard.html`
+- **作業ファイル**: `./dashboard.html` (プロジェクトルート)
 - **本番サイト**: https://chainon-test.xyz/dashboard.html
 - **一時ファイルは使用しないでください**
 
-### 🇺🇸 English
+### EN English
 
 #### About SSH Tunnel
 - **DO NOT close the tunnel window**
@@ -118,75 +136,105 @@ Double-click deploy-production.bat
 - Server path: `/var/www/dashboard/dashboard.html`
 
 #### File Locations
-- **Working file**: `E:\Work\n8n\chainon\git\beauty-salon-system\dashboard.html`
+- **Working file**: `./dashboard.html` (project root)
 - **Production site**: https://chainon-test.xyz/dashboard.html
 - **Do not use temporary files**
 
 ---
 
+## 🔧 初回セットアップ | Initial Setup
+
+### JP 日本語
+
+1. **リポジトリをクローン**
+   ```bash
+   git clone https://github.com/mashtakeec/beauty-salon-system.git
+   cd beauty-salon-system
+   ```
+
+2. **エディタをインストール**
+   - [Cursor](https://cursor.sh/) または [VS Code](https://code.visualstudio.com/)
+
+3. **SSH設定**
+   - SSH鍵を設定
+   - 本番サーバーへのアクセス権限を確認
+
+### EN English
+
+1. **Clone Repository**
+   ```bash
+   git clone https://github.com/mashtakeec/beauty-salon-system.git
+   cd beauty-salon-system
+   ```
+
+2. **Install Editor**
+   - [Cursor](https://cursor.sh/) or [VS Code](https://code.visualstudio.com/)
+
+3. **SSH Setup**
+   - Configure SSH keys
+   - Verify access to production server
+
+---
+
 ## 🔧 トラブルシューティング | Troubleshooting
 
-### 🇯🇵 日本語
+### JP 日本語
 
 #### よくある問題と解決方法
 
-1. **「SSHトンネルが検出されませんでした」エラー**
-   ```
-   start-ssh-tunnel.bat を実行してから再試行
+1. **Mac/Linuxでのスクリプト実行エラー**
+   ```bash
+   chmod +x *.sh
    ```
 
-2. **「Gitエラー」が発生した場合**
+2. **「SSHトンネルが検出されませんでした」エラー**
+   ```bash
+   # Windows
+   start-ssh-tunnel.bat
+   
+   # Mac/Linux
+   ./start-ssh-tunnel.sh
    ```
-   ターミナルで以下を実行:
-   cd E:\Work\n8n\chainon\git\beauty-salon-system
+
+3. **「Gitエラー」が発生した場合**
+   ```bash
    git status
+   git log --oneline -5
    ```
 
-3. **本番環境への接続エラー**
-   - SSH認証情報を確認
-   - ネットワーク接続を確認
-   - トンネルが正常に動作しているか確認
-   - サーバーパス `/var/www/dashboard/` への書き込み権限を確認
-
-4. **サイトが更新されない場合**
-   - ブラウザのキャッシュをクリア (Ctrl+F5)
-   - https://chainon-test.xyz/dashboard.html を確認
-
-### 🇺🇸 English
+### EN English
 
 #### Common Issues and Solutions
 
-1. **"SSH tunnel not detected" error**
-   ```
-   Run start-ssh-tunnel.bat first, then retry
+1. **Script execution error on Mac/Linux**
+   ```bash
+   chmod +x *.sh
    ```
 
-2. **"Git error" occurs**
+2. **"SSH tunnel not detected" error**
+   ```bash
+   # Windows
+   start-ssh-tunnel.bat
+   
+   # Mac/Linux
+   ./start-ssh-tunnel.sh
    ```
-   Run the following in terminal:
-   cd E:\Work\n8n\chainon\git\beauty-salon-system
+
+3. **"Git error" occurs**
+   ```bash
    git status
+   git log --oneline -5
    ```
-
-3. **Production environment connection error**
-   - Check SSH credentials
-   - Check network connection
-   - Verify tunnel is working properly
-   - Check write permissions to `/var/www/dashboard/` server path
-
-4. **Site not updating**
-   - Clear browser cache (Ctrl+F5)
-   - Check https://chainon-test.xyz/dashboard.html
 
 ---
 
 ## 📞 サポート | Support
 
-### 🇯🇵 日本語
-問題が発生した場合は、Ricardo（ricardo.mashtake@gmail.com）に連絡してください。
+### JP 日本語
+問題が発生した場合は、プロジェクト管理者に連絡してください。
 
-### 🇺🇸 English
-If you encounter any issues, please contact Ricardo (ricardo.mashtake@gmail.com).
+### EN English
+If you encounter any issues, please contact the project administrator.
 
 ---
 
@@ -200,13 +248,13 @@ If you encounter any issues, please contact Ricardo (ricardo.mashtake@gmail.com)
 
 ## 📊 システム情報 | System Information
 
-### 🇯🇵 日本語
+### JP 日本語
 - **本番サーバー**: chainon-test.xyz
 - **デプロイパス**: /var/www/dashboard/dashboard.html
 - **ユーザーホーム**: /home/hajime
 - **SSH経由**: ishitomi@59.87.187.40 → hajime@localhost:2223
 
-### 🇺🇸 English
+### EN English
 - **Production Server**: chainon-test.xyz
 - **Deploy Path**: /var/www/dashboard/dashboard.html
 - **User Home**: /home/hajime
@@ -214,43 +262,47 @@ If you encounter any issues, please contact Ricardo (ricardo.mashtake@gmail.com)
 
 ---
 
-## 🎯 快速入门 | Quick Start
+## 🎯 クイックスタート | Quick Start
 
-### 🇯🇵 日本語
+### JP 日本語
+
+#### 🪟 Windows:
 ```bash
-# 1. ファイルを開く
-open-cursor.bat
-
-# 2. 編集後、GitHubに同期
-quick-sync.bat
-
-# 3. 本番環境にデプロイ
-deploy-production.bat
+# 1. ファイルを開く → 2. 編集 → 3. デプロイ
+open-cursor.bat → [編集] → deploy-production.bat
 ```
 
-### 🇺🇸 English
+#### 🍎 Mac/Linux:
 ```bash
-# 1. Open file
-open-cursor.bat
+# 1. ファイルを開く → 2. 編集 → 3. デプロイ
+./open-cursor.sh → [編集] → ./deploy-production.sh
+```
 
-# 2. After editing, sync to GitHub
-quick-sync.bat
+### EN English
 
-# 3. Deploy to production
-deploy-production.bat
+#### 🪟 Windows:
+```bash
+# 1. Open file → 2. Edit → 3. Deploy
+open-cursor.bat → [Edit] → deploy-production.bat
+```
+
+#### 🍎 Mac/Linux:
+```bash
+# 1. Open file → 2. Edit → 3. Deploy
+./open-cursor.sh → [Edit] → ./deploy-production.sh
 ```
 
 ---
 
 ## 🏗️ アーキテクチャ | Architecture
 
-### 🇯🇵 日本語
+### JP 日本語
 - **フロントエンド**: HTML/CSS/JavaScript + Chart.js
 - **バックエンド**: Supabase (PostgreSQL)
 - **デプロイ**: SSH/SCP経由での自動デプロイ
 - **バージョン管理**: Git + GitHub
 
-### 🇺🇸 English
+### EN English
 - **Frontend**: HTML/CSS/JavaScript + Chart.js
 - **Backend**: Supabase (PostgreSQL)
 - **Deployment**: Automated deployment via SSH/SCP
@@ -258,4 +310,4 @@ deploy-production.bat
 
 ---
 
-**Created by Ricardo Mashtake | 作成者: Ricardo Mashtake**
+**Created by Development Team | 開発チーム作成**
