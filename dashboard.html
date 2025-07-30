@@ -1695,9 +1695,9 @@
         // Get unique customers count from transactions or m_customers table
         async function getCustomersCount(transactions) {
             try {
-                // First try to get from m_customers table
+                // First try to get from m_customers table (all customers)
                 const customers = await supabaseClient.query('m_customers', {
-                    params: '?select=customer_id&active_flag=eq.true'
+                    params: '?select=customer_id'
                 });
                 if (customers.length > 0) {
                     return customers.length;
@@ -3435,11 +3435,10 @@
                         return sum + amount;
                     }, 0);
                     
-                    // 顧客数 (from m_customers table - active customers only)
+                    // 顧客数 (from m_customers table - all customers)
                     const { count: totalCustomers } = await supabase
                         .from('m_customers')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('active_flag', true);
+                        .select('*', { count: 'exact', head: true });
                     
                     // 平均売上
                     const avgRevenue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
