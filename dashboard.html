@@ -677,8 +677,22 @@
             </div>
 
             <div class="table-container">
-                <h3 style="color: #5a67d8; margin-bottom: 20px;">👥 スタッフマスタ（上位10名）</h3>
-                <table>
+                <h3 style="color: #5a67d8; margin-bottom: 20px;">👥 スタッフマスタ</h3>
+                
+                <!-- Staff Filter Dropdown -->
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.9); border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label for="staffStoreFilter" style="font-weight: bold; color: #5a67d8; margin-right: 10px;">店舗フィルター:</label>
+                    <select id="staffStoreFilter" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; min-width: 200px;">
+                        <option value="">すべてのスタッフ</option>
+                        <!-- Dynamic store options will be added here -->
+                    </select>
+                    <span id="staffCountDisplay" style="margin-left: 15px; color: #718096; font-size: 14px;">
+                        読み込み中...
+                    </span>
+                </div>
+                
+                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table>
                     <thead>
                         <tr>
                             <th>スタッフID</th>
@@ -694,6 +708,7 @@
                         <!-- 動的に生成 -->
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -949,6 +964,8 @@
                 initRealtimeChart();
             } else if (sectionName === 'ai-analysis') {
                 loadAIAnalysis();
+            } else if (sectionName === 'masters') {
+                loadAllStaffData(); // Load all staff data with filter functionality
             }
         }
 
@@ -1043,6 +1060,149 @@
                 `).join('');
             }
         }
+
+        // ============================================================
+        // STAFF MANAGEMENT FUNCTIONALITY
+        // ============================================================
+
+        let allStaffData = [];
+        let allStoresData = [];
+
+        // Load all staff data from Supabase
+        async function loadAllStaffData() {
+            try {
+                console.log('📊 スタッフデータを読み込み中...');
+                
+                // Load staff data from m_staff table
+                const [staffResponse, storesResponse] = await Promise.all([
+                    supabaseClient.query('m_staff', {
+                        params: '?select=*&order=staff_name.asc'
+                    }),
+                    supabaseClient.query('m_stores', {
+                        params: '?select=*&order=store_name.asc'
+                    })
+                ]);
+
+                allStaffData = staffResponse;
+                allStoresData = storesResponse;
+
+                console.log(`✅ ${allStaffData.length}名のスタッフデータを読み込みました`);
+                console.log(`✅ ${allStoresData.length}店舗のデータを読み込みました`);
+
+                // Populate store filter dropdown
+                populateStoreFilter();
+                
+                // Display all staff initially
+                displayFilteredStaff('');
+
+            } catch (error) {
+                console.error('❌ スタッフデータの読み込みエラー:', error);
+                showStaffLoadError();
+            }
+        }
+
+        // Populate store filter dropdown
+        function populateStoreFilter() {
+            const storeFilter = document.getElementById('staffStoreFilter');
+            if (!storeFilter) return;
+
+            // Clear existing options except the first one
+            storeFilter.innerHTML = '<option value="">すべてのスタッフ</option>';
+
+            // Add store options
+            allStoresData.forEach(store => {
+                const option = document.createElement('option');
+                option.value = store.store_id;
+                option.textContent = store.store_name;
+                storeFilter.appendChild(option);
+            });
+
+            // Add event listener for filter changes
+            storeFilter.addEventListener('change', function() {
+                displayFilteredStaff(this.value);
+            });
+        }
+
+        // Display filtered staff based on store selection
+        function displayFilteredStaff(storeId) {
+            const staffTableBody = document.getElementById('staffTableBody');
+            const staffCountDisplay = document.getElementById('staffCountDisplay');
+            
+            if (!staffTableBody || !staffCountDisplay) return;
+
+            // Filter staff based on store selection
+            let filteredStaff = allStaffData;
+            if (storeId) {
+                filteredStaff = allStaffData.filter(staff => staff.store_id == storeId);
+            }
+
+            // Create store lookup map
+            const storeMap = {};
+            allStoresData.forEach(store => {
+                storeMap[store.store_id] = store.store_name;
+            });
+
+            // Generate table rows
+            if (filteredStaff.length > 0) {
+                staffTableBody.innerHTML = filteredStaff.map(staff => {
+                    const storeName = storeMap[staff.store_id] || '不明な店舗';
+                    const skillLevel = staff.skill_level ? '⭐'.repeat(Math.min(staff.skill_level, 5)) : '未設定';
+                    const nominationRate = staff.nomination_rate ? `${staff.nomination_rate}%` : '未設定';
+                    const statusClass = staff.active_flag ? 'success' : 'warning';
+                    const statusText = staff.active_flag ? '在籍' : '退職';
+                    
+                    return `
+                        <tr>
+                            <td>${staff.staff_id}</td>
+                            <td style="font-weight: bold;">${staff.staff_name}</td>
+                            <td>${storeName}</td>
+                            <td>${staff.position || '未設定'}</td>
+                            <td>${skillLevel}</td>
+                            <td>${nominationRate}</td>
+                            <td><span class="badge badge-${statusClass}">${statusText}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Update count display
+                const storeName = storeId ? allStoresData.find(s => s.store_id == storeId)?.store_name : 'すべての店舗';
+                staffCountDisplay.textContent = `${storeName}: ${filteredStaff.length}名のスタッフ`;
+            } else {
+                staffTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px; color: #718096;">
+                            スタッフデータが見つかりません
+                        </td>
+                    </tr>
+                `;
+                staffCountDisplay.textContent = 'スタッフデータなし';
+            }
+        }
+
+        // Show error when staff loading fails
+        function showStaffLoadError() {
+            const staffTableBody = document.getElementById('staffTableBody');
+            const staffCountDisplay = document.getElementById('staffCountDisplay');
+            
+            if (staffTableBody) {
+                staffTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px; color: #f56565;">
+                            ❌ スタッフデータの読み込みに失敗しました<br>
+                            <small>Supabase接続を確認してください</small>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            if (staffCountDisplay) {
+                staffCountDisplay.textContent = 'データ読み込みエラー';
+            }
+        }
+
+        // ============================================================
+        // END STAFF MANAGEMENT FUNCTIONALITY
+        // ============================================================
 
         // グラフの初期化
         function initAnalyticsCharts() {
