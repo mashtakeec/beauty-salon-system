@@ -14,25 +14,36 @@ jobs:
     - name: 📥 Checkout repository
       uses: actions/checkout@v3
     
-    - name: 🚀 Deploy via FTP
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+    - name: 📤 Upload dashboard.html to staging
+      uses: appleboy/scp-action@v0.1.7
       with:
-        server: chainon-test.xyz  # Tu servidor según README
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: ./
-        server-dir: /var/www/dashboard/
-        exclude: |
-          **/.git*
-          **/.git*/**
-          **/node_modules/**
-          **/.DS_Store
-          **/README*.md
-          **/*.bat
-          **/*.sh
-          **/.github/**
-          **/upload.html
-          **/index.html
+        host: 59.87.187.40
+        username: ishitomi  
+        password: ${{ secrets.SSH_PASSWORD }}
+        port: 22
+        source: "dashboard.html"
+        target: "/tmp/"
+    
+    - name: 🚀 Deploy via SSH Tunnel
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: 59.87.187.40
+        username: ishitomi
+        password: ${{ secrets.SSH_PASSWORD }}
+        port: 22
+        script: |
+          echo "🔧 Setting up SSH tunnel..."
+          ssh -fN -L 2223:10.0.0.99:22 localhost || true
+          sleep 3
+          
+          echo "📤 Deploying dashboard.html..."
+          scp -P 2223 /tmp/dashboard.html hajime@localhost:/var/www/dashboard/
+          
+          echo "🧹 Cleaning up..."
+          pkill -f "ssh -fN -L 2223:10.0.0.99:22" || true
+          rm -f /tmp/dashboard.html
+          
+          echo "✅ Dashboard deployed successfully!"
     
     - name: ✅ Deployment Complete
       run: |
