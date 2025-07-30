@@ -1,0 +1,41 @@
+name: Auto-Deploy to chainon-test.xyz
+
+on:
+  push:
+    branches: [ main ]  # Se ejecuta cuando haces push a main
+    paths: 
+      - 'dashboard.html'  # Solo cuando dashboard.html cambia
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: 🚀 Deploy via FTP
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: chainon-test.xyz  # Tu servidor según README
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./
+        server-dir: /var/www/dashboard/
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/.DS_Store
+          **/README*.md
+          **/*.bat
+          **/*.sh
+          **/.github/**
+          **/upload.html
+          **/index.html
+    
+    - name: ✅ Deployment Complete
+      run: |
+        echo "🎉 Dashboard deployed successfully!"
+        echo "📍 URL: https://chainon-test.xyz/dashboard.html"
+        echo "🕒 Deployed at: $(date)" 
