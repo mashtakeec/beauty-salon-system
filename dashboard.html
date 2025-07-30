@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>サロン統合DB管理システム</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -412,24 +413,24 @@
         <div id="overview" class="content-section active">
             <div class="quick-stats">
                 <div class="quick-stat-card">
-                    <h4>総レコード数</h4>
-                    <div class="value">10,694</div>
+                    <h4>総取引数</h4>
+                    <div class="value" id="total-transactions">10,694</div>
                 </div>
                 <div class="quick-stat-card">
-                    <h4>アクティブ店舗</h4>
-                    <div class="value">14</div>
-                </div>
-                <div class="quick-stat-card">
-                    <h4>登録スタッフ</h4>
-                    <div class="value">118</div>
-                </div>
-                <div class="quick-stat-card">
-                    <h4>サービス種別</h4>
-                    <div class="value">980</div>
+                    <h4>総売上</h4>
+                    <div class="value" id="total-revenue">¥135,032,968</div>
                 </div>
                 <div class="quick-stat-card">
                     <h4>顧客数</h4>
-                    <div class="value">8,241</div>
+                    <div class="value" id="total-customers">10,694</div>
+                </div>
+                <div class="quick-stat-card">
+                    <h4>平均売上</h4>
+                    <div class="value" id="avg-revenue">¥6,314</div>
+                </div>
+                <div class="quick-stat-card">
+                    <h4>ユニーク顧客</h4>
+                    <div class="value" id="unique-customers">400</div>
                 </div>
             </div>
 
@@ -3348,5 +3349,220 @@
         // END STORE SALES RANKING FUNCTIONALITY
         // ============================================================
         </script>
-</body>
+        
+        <!-- Supabase統合スクリプト -->
+        <script>
+            // 既存のSupabase設定を使用
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            // ページ読み込み時にデータを取得
+            document.addEventListener('DOMContentLoaded', async () => {
+                console.log('🎯 ダッシュボードが読み込まれました！');
+                await loadDashboardData();
+            });
+            
+            // ダッシュボードデータを読み込む
+            async function loadDashboardData() {
+                try {
+                    console.log('📊 データの読み込みを開始します...');
+                    
+                    // 統計データを取得
+                    await loadStatistics();
+                    
+                    // 取引データを取得
+                    await loadTransactions();
+                    
+                    // 顧客データを取得
+                    await loadCustomers();
+                    
+                    // 最終更新時刻を更新
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ja-JP');
+                    
+                } catch (error) {
+                    console.error('データの読み込みに失敗しました:', error);
+                }
+            }
+            
+            // 統計データを読み込む
+            async function loadStatistics() {
+                try {
+                    console.log('🔍 統計データを取得中...');
+                    
+                    // より確実に全データを取得するために、複数回に分けて取得
+                    let allData = [];
+                    let offset = 0;
+                    const limit = 1000;
+                    let maxAttempts = 30; // 最大30回まで試行
+                    let attempts = 0;
+                    
+                    while (true) {
+                        const { data: batch, error: batchError } = await supabase
+                            .from('beauty_salon_transactions')
+                            .select('total_amount')
+                            .range(offset, offset + limit - 1)
+                            .order('id');
+                        
+                        if (batchError) {
+                            throw batchError;
+                        }
+                        
+                        if (batch.length === 0 || attempts >= maxAttempts) {
+                            break;
+                        }
+                        
+                        allData = allData.concat(batch);
+                        offset += limit;
+                        attempts++;
+                        
+                        console.log(`📦 バッチ取得: ${batch.length}件 (累計: ${allData.length}件)`);
+                    }
+                    
+                    console.log('📋 取得したデータ件数:', allData.length);
+                    
+                    // 総取引数
+                    const totalTransactions = allData.length;
+                    
+                    // 総売上
+                    const totalRevenue = allData.reduce((sum, row) => {
+                        let amount = 0;
+                        if (row.total_amount !== null && row.total_amount !== undefined) {
+                            amount = parseFloat(row.total_amount);
+                            if (isNaN(amount)) {
+                                amount = 0;
+                            }
+                        }
+                        return sum + amount;
+                    }, 0);
+                    
+                    // 顧客数
+                    const { count: totalCustomers } = await supabase
+                        .from('customer_profiles')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    // 平均売上
+                    const avgRevenue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+                    
+                    // ユニーク顧客数
+                    const { data: uniqueCustomers } = await supabase
+                        .from('beauty_salon_transactions')
+                        .select('customer_name')
+                        .not('customer_name', 'is', null);
+                    
+                    const uniqueCustomerCount = new Set(uniqueCustomers.map(c => c.customer_name)).size;
+                    
+                    // 統計を表示
+                    document.getElementById('total-transactions').textContent = totalTransactions.toLocaleString();
+                    document.getElementById('total-revenue').textContent = `¥${Math.round(totalRevenue).toLocaleString()}`;
+                    document.getElementById('total-customers').textContent = totalCustomers.toLocaleString();
+                    document.getElementById('avg-revenue').textContent = `¥${Math.round(avgRevenue).toLocaleString()}`;
+                    document.getElementById('unique-customers').textContent = uniqueCustomerCount.toLocaleString();
+                    
+                    console.log('📈 統計データ:', {
+                        totalTransactions,
+                        totalRevenue,
+                        totalCustomers,
+                        avgRevenue,
+                        uniqueCustomerCount
+                    });
+                    
+                } catch (error) {
+                    console.error('統計データの取得に失敗:', error);
+                }
+            }
+            
+            // 取引データを読み込む
+            async function loadTransactions() {
+                try {
+                    const { data: transactions, error } = await supabase
+                        .from('beauty_salon_transactions')
+                        .select('*')
+                        .order('visit_date', { ascending: false })
+                        .limit(20);
+                    
+                    if (error) throw error;
+                    
+                    // 取引テーブルがあれば更新
+                    const transactionsTable = document.getElementById('transactions-table');
+                    if (transactionsTable) {
+                        const tbody = transactionsTable.querySelector('tbody');
+                        if (tbody) {
+                            tbody.innerHTML = '';
+                            transactions.forEach(transaction => {
+                                const row = document.createElement('tr');
+                                const amount = parseFloat(transaction.total_amount) || 0;
+                                row.innerHTML = `
+                                    <td>${transaction.transaction_id || '-'}</td>
+                                    <td>${transaction.store_name || '-'}</td>
+                                    <td>${transaction.customer_name || '-'}</td>
+                                    <td>${transaction.service_name || '-'}</td>
+                                    <td>¥${amount.toLocaleString()}</td>
+                                    <td>${formatDate(transaction.visit_date)}</td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('取引データの取得に失敗:', error);
+                }
+            }
+            
+            // 顧客データを読み込む
+            async function loadCustomers() {
+                try {
+                    const { data: customers, error } = await supabase
+                        .from('customer_profiles')
+                        .select('*')
+                        .order('total_spent', { ascending: false })
+                        .limit(20);
+                    
+                    if (error) throw error;
+                    
+                    // 顧客テーブルがあれば更新
+                    const customersTable = document.getElementById('customers-table');
+                    if (customersTable) {
+                        const tbody = customersTable.querySelector('tbody');
+                        if (tbody) {
+                            tbody.innerHTML = '';
+                            customers.forEach(customer => {
+                                const row = document.createElement('tr');
+                                const totalSpent = parseFloat(customer.total_spent) || 0;
+                                const avgSpend = parseFloat(customer.average_spend) || 0;
+                                row.innerHTML = `
+                                    <td>${customer.customer_id || '-'}</td>
+                                    <td>${customer.customer_name || '-'}</td>
+                                    <td>${customer.total_visits || 0}</td>
+                                    <td>¥${totalSpent.toLocaleString()}</td>
+                                    <td>¥${avgSpend.toLocaleString()}</td>
+                                    <td>${formatDate(customer.last_visit_date)}</td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('顧客データの取得に失敗:', error);
+                }
+            }
+            
+            // 日付をフォーマットする
+            function formatDate(dateString) {
+                if (!dateString) return '-';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('ja-JP');
+            }
+            
+            // データを自動更新（5分ごと）
+            setInterval(async () => {
+                try {
+                    await loadDashboardData();
+                    console.log('データを更新しました');
+                } catch (error) {
+                    console.error('データの自動更新に失敗:', error);
+                }
+            }, 300000); // 5分 = 300,000ミリ秒
+        </script>
+    </body>
 </html>
