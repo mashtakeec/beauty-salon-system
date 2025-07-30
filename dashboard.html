@@ -3435,10 +3435,11 @@
                         return sum + amount;
                     }, 0);
                     
-                    // 顧客数
+                    // 顧客数 (from m_customers table - active customers only)
                     const { count: totalCustomers } = await supabase
-                        .from('customer_profiles')
-                        .select('*', { count: 'exact', head: true });
+                        .from('m_customers')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('active_flag', true);
                     
                     // 平均売上
                     const avgRevenue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
