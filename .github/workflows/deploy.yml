@@ -14,36 +14,30 @@ jobs:
     - name: 📥 Checkout repository
       uses: actions/checkout@v3
     
-    - name: 📤 Upload dashboard.html to staging
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: 59.87.187.40
-        username: ishitomi  
-        password: ${{ secrets.SSH_PASSWORD }}
-        port: 22
-        source: "dashboard.html"
-        target: "/tmp/"
-    
     - name: 🚀 Deploy via SSH Tunnel
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: 59.87.187.40
-        username: ishitomi
-        password: ${{ secrets.SSH_PASSWORD }}
-        port: 22
-        script: |
-          echo "🔧 Setting up SSH tunnel..."
-          ssh -fN -L 2223:10.0.0.99:22 localhost || true
-          sleep 3
-          
-          echo "📤 Deploying dashboard.html..."
-          scp -P 2223 /tmp/dashboard.html hajime@localhost:/var/www/dashboard/
-          
-          echo "🧹 Cleaning up..."
-          pkill -f "ssh -fN -L 2223:10.0.0.99:22" || true
-          rm -f /tmp/dashboard.html
-          
-          echo "✅ Dashboard deployed successfully!"
+      run: |
+        # Install sshpass on GitHub runner
+        sudo apt-get update -qq
+        sudo apt-get install -y sshpass
+        
+        # Setup SSH known hosts
+        mkdir -p ~/.ssh
+        ssh-keyscan -H 59.87.187.40 >> ~/.ssh/known_hosts
+        echo "localhost ssh-rsa AAAAB3NzaC1yc2EAAAA..." >> ~/.ssh/known_hosts || true
+        
+        # Setup tunnel and deploy
+        echo "🔧 Starting SSH tunnel..."
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -fN -L 2223:10.0.0.99:22 ishitomi@59.87.187.40 &
+        TUNNEL_PID=$!
+        sleep 10
+        
+        echo "📤 Deploying dashboard.html to hajime server..."
+        sshpass -p "${{ secrets.HAJIME_PASSWORD }}" scp -o StrictHostKeyChecking=no -P 2223 dashboard.html hajime@localhost:/var/www/dashboard/
+        
+        echo "🧹 Cleaning up tunnel..."
+        kill $TUNNEL_PID || true
+        
+        echo "✅ Dashboard deployed successfully!"
     
     - name: ✅ Deployment Complete
       run: |
