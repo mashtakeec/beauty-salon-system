@@ -733,8 +733,22 @@
             </div>
 
             <div class="table-container">
-                <h3 style="color: #5a67d8; margin-bottom: 20px;">📊 最新取引履歴</h3>
-                <table>
+                <h3 style="color: #5a67d8; margin-bottom: 20px;">📊 取引履歴</h3>
+                
+                <!-- Transaction Filter Dropdown -->
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.9); border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label for="transactionStoreFilter" style="font-weight: bold; color: #5a67d8; margin-right: 10px;">店舗フィルター:</label>
+                    <select id="transactionStoreFilter" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; min-width: 200px;">
+                        <option value="">すべての店舗</option>
+                        <!-- Dynamic store options will be added here -->
+                    </select>
+                    <span id="transactionCountDisplay" style="margin-left: 15px; color: #718096; font-size: 14px;">
+                        読み込み中...
+                    </span>
+                </div>
+                
+                <div style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table>
                     <thead>
                         <tr>
                             <th>取引ID</th>
@@ -751,6 +765,7 @@
                         <!-- 動的に生成 -->
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -966,6 +981,8 @@
                 loadAIAnalysis();
             } else if (sectionName === 'masters') {
                 loadAllStaffData(); // Load all staff data with filter functionality
+            } else if (sectionName === 'transactions') {
+                loadAllTransactionData(); // Load all transaction data with filter functionality
             }
         }
 
@@ -1202,6 +1219,161 @@
 
         // ============================================================
         // END STAFF MANAGEMENT FUNCTIONALITY
+        // ============================================================
+
+        // ============================================================
+        // TRANSACTION MANAGEMENT FUNCTIONALITY
+        // ============================================================
+
+        let allTransactionData = [];
+
+        // Load all transaction data from Supabase
+        async function loadAllTransactionData() {
+            try {
+                console.log('📊 全取引データを読み込み中...');
+                
+                // Load all transaction data (not limited to 10)
+                let transactions = [];
+                
+                try {
+                    // First try the main transactions table
+                    transactions = await supabaseClient.query('beauty_salon_transactions', {
+                        params: '?select=*&order=visit_date.desc,created_at.desc'
+                    });
+                    console.log(`📊 Loaded ${transactions.length} transactions from beauty_salon_transactions`);
+                } catch (error) {
+                    console.log('❌ Error loading transactions:', error);
+                    showTransactionLoadError();
+                    return;
+                }
+                
+                allTransactionData = transactions;
+                
+                // Load stores for filter if not already loaded
+                if (allStoresData.length === 0) {
+                    try {
+                        allStoresData = await supabaseClient.query('m_stores', {
+                            params: '?select=*&order=store_name.asc'
+                        });
+                    } catch (error) {
+                        console.log('❌ Error loading stores for transaction filter:', error);
+                    }
+                }
+
+                console.log(`✅ ${allTransactionData.length}件の取引データを読み込みました`);
+
+                // Populate store filter dropdown for transactions
+                populateTransactionStoreFilter();
+                
+                // Display all transactions initially
+                displayFilteredTransactions('');
+
+            } catch (error) {
+                console.error('❌ 取引データの読み込みエラー:', error);
+                showTransactionLoadError();
+            }
+        }
+
+        // Populate transaction store filter dropdown
+        function populateTransactionStoreFilter() {
+            const storeFilter = document.getElementById('transactionStoreFilter');
+            if (!storeFilter) return;
+
+            // Clear existing options except the first one
+            storeFilter.innerHTML = '<option value="">すべての店舗</option>';
+
+            // Get unique stores from transaction data
+            const uniqueStores = [...new Set(allTransactionData.map(t => t.store_name))].filter(Boolean);
+            
+            // Add store options from transaction data
+            uniqueStores.forEach(storeName => {
+                const option = document.createElement('option');
+                option.value = storeName;
+                option.textContent = storeName;
+                storeFilter.appendChild(option);
+            });
+
+            // Add event listener for filter changes
+            storeFilter.addEventListener('change', function() {
+                displayFilteredTransactions(this.value);
+            });
+        }
+
+        // Display filtered transactions based on store selection
+        function displayFilteredTransactions(storeName) {
+            const transactionTableBody = document.getElementById('transactionTableBody');
+            const transactionCountDisplay = document.getElementById('transactionCountDisplay');
+            
+            if (!transactionTableBody || !transactionCountDisplay) return;
+
+            // Filter transactions based on store selection
+            let filteredTransactions = allTransactionData;
+            if (storeName) {
+                filteredTransactions = allTransactionData.filter(transaction => 
+                    transaction.store_name === storeName
+                );
+            }
+
+            // Generate table rows (ordered by date desc - newest first)
+            if (filteredTransactions.length > 0) {
+                transactionTableBody.innerHTML = filteredTransactions.map(transaction => {
+                    const visitDate = transaction.visit_date ? new Date(transaction.visit_date) : null;
+                    const formattedDate = visitDate ? visitDate.toLocaleDateString('ja-JP') : '日付不明';
+                    const formattedTime = transaction.payment_time || '';
+                    const amount = parseFloat(transaction.total_amount) || 0;
+                    
+                    return `
+                        <tr>
+                            <td>${transaction.transaction_id || transaction.id || '未設定'}</td>
+                            <td>${formattedDate} ${formattedTime}</td>
+                            <td style="font-weight: bold;">${transaction.store_name || '店舗不明'}</td>
+                            <td>${transaction.customer_name || '顧客不明'}</td>
+                            <td>${transaction.service_name || 'サービス不明'}</td>
+                            <td style="font-weight: bold; color: #48bb78;">¥${amount.toLocaleString()}</td>
+                            <td>${transaction.payment_method || '支払方法不明'}</td>
+                            <td><span class="badge badge-success">完了</span></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Update count display
+                const storeDisplayName = storeName || 'すべての店舗';
+                transactionCountDisplay.textContent = `${storeDisplayName}: ${filteredTransactions.length}件の取引`;
+            } else {
+                transactionTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 20px; color: #718096;">
+                            取引データが見つかりません
+                        </td>
+                    </tr>
+                `;
+                transactionCountDisplay.textContent = '取引データなし';
+            }
+        }
+
+        // Show error when transaction loading fails
+        function showTransactionLoadError() {
+            const transactionTableBody = document.getElementById('transactionTableBody');
+            const transactionCountDisplay = document.getElementById('transactionCountDisplay');
+            
+            if (transactionTableBody) {
+                transactionTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 20px; color: #f56565;">
+                            ❌ 取引データの読み込みに失敗しました<br>
+                            <small>Supabase接続を確認してください</small>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            if (transactionCountDisplay) {
+                transactionCountDisplay.textContent = 'データ読み込みエラー';
+            }
+        }
+
+        // ============================================================
+        // END TRANSACTION MANAGEMENT FUNCTIONALITY
         // ============================================================
 
         // グラフの初期化
