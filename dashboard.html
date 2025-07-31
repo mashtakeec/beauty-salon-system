@@ -426,8 +426,8 @@
                     <div class="value" id="total-customers">10,694</div>
                 </div>
                 <div class="quick-stat-card">
-                    <h4>平均売上</h4>
-                    <div class="value" id="avg-revenue">¥6,314</div>
+                    <h4>平均会計金額</h4>
+                    <div class="value" id="avg-revenue">¥15,891</div>
                 </div>
                 <div class="quick-stat-card">
                     <h4>ユニーク顧客</h4>
@@ -3977,16 +3977,16 @@
                         .from('m_customers')
                         .select('*', { count: 'exact', head: true });
                     
-                    // 平均売上
-                    const avgRevenue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
-                    
-                    // ユニーク顧客数
+                    // ユニーク顧客数 (calculate first to use in avgRevenue)
                     const { data: uniqueCustomers } = await supabase
                         .from('beauty_salon_transactions')
                         .select('customer_name')
                         .not('customer_name', 'is', null);
                     
                     const uniqueCustomerCount = new Set(uniqueCustomers.map(c => c.customer_name)).size;
+                    
+                    // 平均売上 (changed to calculate per customer like Manus AI)
+                    const avgRevenue = uniqueCustomerCount > 0 ? totalRevenue / uniqueCustomerCount : 0;
                     
                     // 統計を表示
                     document.getElementById('total-transactions').textContent = totalTransactions.toLocaleString();
@@ -3999,7 +3999,7 @@
                         totalTransactions,
                         totalRevenue,
                         totalCustomers,
-                        avgRevenue,
+                        avgRevenue: `${Math.round(avgRevenue).toLocaleString()} (per customer, like Manus AI)`,
                         uniqueCustomerCount
                     });
                     
