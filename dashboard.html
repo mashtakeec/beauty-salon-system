@@ -3936,7 +3936,7 @@
                     while (true) {
                         const { data: batch, error: batchError } = await supabase
                             .from('beauty_salon_transactions')
-                            .select('total_amount')
+                            .select('total_amount, customer_name')
                             .range(offset, offset + limit - 1)
                             .order('id');
                         
@@ -3977,15 +3977,13 @@
                         .from('m_customers')
                         .select('*', { count: 'exact', head: true });
                     
-                    // ユニーク顧客数 (calculate first to use in avgRevenue)
-                    const { data: uniqueCustomers } = await supabase
-                        .from('beauty_salon_transactions')
-                        .select('customer_name')
-                        .not('customer_name', 'is', null);
+                    // ユニーク顧客数 (using same data set as totalRevenue to ensure consistency)
+                    const uniqueCustomerNames = allData
+                        .filter(row => row.customer_name !== null && row.customer_name !== undefined)
+                        .map(row => row.customer_name);
+                    const uniqueCustomerCount = new Set(uniqueCustomerNames).size;
                     
-                    const uniqueCustomerCount = new Set(uniqueCustomers.map(c => c.customer_name)).size;
-                    
-                    // 平均売上 (changed to calculate per customer like Manus AI)
+                    // 平均売上 (changed to calculate per customer like Manus AI - using consistent data set)
                     const avgRevenue = uniqueCustomerCount > 0 ? totalRevenue / uniqueCustomerCount : 0;
                     
                     // 統計を表示
@@ -3995,12 +3993,13 @@
                     document.getElementById('avg-revenue').textContent = `¥${Math.round(avgRevenue).toLocaleString()}`;
                     document.getElementById('unique-customers').textContent = uniqueCustomerCount.toLocaleString();
                     
-                    console.log('📈 統計データ:', {
+                    console.log('📈 統計データ (Fixed calculation):', {
                         totalTransactions,
-                        totalRevenue,
+                        totalRevenue: `¥${Math.round(totalRevenue).toLocaleString()}`,
                         totalCustomers,
-                        avgRevenue: `${Math.round(avgRevenue).toLocaleString()} (per customer, like Manus AI)`,
-                        uniqueCustomerCount
+                        uniqueCustomerCount: `${uniqueCustomerCount} (from same dataset)`,
+                        avgRevenue: `¥${Math.round(avgRevenue).toLocaleString()} (per customer, consistent with Manus AI)`,
+                        calculation: `¥${Math.round(totalRevenue).toLocaleString()} ÷ ${uniqueCustomerCount} = ¥${Math.round(avgRevenue).toLocaleString()}`
                     });
                     
                 } catch (error) {
