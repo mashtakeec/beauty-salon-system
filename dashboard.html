@@ -788,7 +788,7 @@
                     <canvas id="hourlyChart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3 style="color: #5a67d8; margin-bottom: 20px;">✂️ 人気サービスTOP10</h3>
+                    <h3 style="color: #5a67d8; margin-bottom: 20px;">✂️ サービスカテゴリー別TOP10</h3>
                     <canvas id="serviceChart"></canvas>
                 </div>
             </div>
@@ -970,6 +970,8 @@
             // グラフの初期化（必要に応じて）
             if (sectionName === 'analytics') {
                 initAnalyticsCharts();
+                // Load real data after charts are initialized
+                setTimeout(() => loadAnalyticsData(), 100);
             } else if (sectionName === 'rankings') {
                 populateRankings();
                 populateStaffRanking(); // Load staff sales ranking
@@ -1374,6 +1376,184 @@
 
         // ============================================================
         // END TRANSACTION MANAGEMENT FUNCTIONALITY
+        // ============================================================
+
+        // ============================================================
+        // ANALYTICS CHARTS DATA LOADING
+        // ============================================================
+
+        // Load dynamic data for all analytics charts
+        async function loadAnalyticsData() {
+            try {
+                console.log('📊 Loading analytics data from Supabase...');
+                
+                // Load transaction data for analytics
+                const transactions = await supabaseClient.query('beauty_salon_transactions', {
+                    params: '?select=*&order=visit_date.asc'
+                });
+                
+                console.log(`📊 Loaded ${transactions.length} transactions for analytics`);
+                
+                // Load additional data needed for analytics
+                const [salesData, storeData, hourlyData, serviceData] = await Promise.all([
+                    getMonthlySalesData(transactions),
+                    getStoreSalesData(transactions),
+                    getHourlyVisitsData(transactions),
+                    getServiceCategoryData(transactions)
+                ]);
+                
+                // Update all charts with real data
+                updateAnalyticsCharts(salesData, storeData, hourlyData, serviceData);
+                
+                console.log('✅ Analytics charts updated with real data!');
+                
+            } catch (error) {
+                console.error('❌ Error loading analytics data:', error);
+                // Fallback to static data
+                initAnalyticsCharts();
+            }
+        }
+
+        // Get monthly sales data from transactions
+        async function getMonthlySalesData(transactions) {
+            const monthlyData = {};
+            
+            transactions.forEach(transaction => {
+                if (transaction.visit_date && transaction.total_amount) {
+                    const date = new Date(transaction.visit_date);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    if (!monthlyData[monthKey]) {
+                        monthlyData[monthKey] = 0;
+                    }
+                    monthlyData[monthKey] += parseFloat(transaction.total_amount) || 0;
+                }
+            });
+            
+            // Sort by date and get last 12 months
+            const sortedMonths = Object.keys(monthlyData).sort().slice(-12);
+            
+            return {
+                labels: sortedMonths.map(month => {
+                    const [year, monthNum] = month.split('-');
+                    return `${monthNum}月`;
+                }),
+                data: sortedMonths.map(month => (monthlyData[month] / 10000).toFixed(1)) // Convert to 万円
+            };
+        }
+
+        // Get store sales data from transactions
+        async function getStoreSalesData(transactions) {
+            const storeData = {};
+            
+            transactions.forEach(transaction => {
+                if (transaction.store_name && transaction.total_amount) {
+                    if (!storeData[transaction.store_name]) {
+                        storeData[transaction.store_name] = 0;
+                    }
+                    storeData[transaction.store_name] += parseFloat(transaction.total_amount) || 0;
+                }
+            });
+            
+            // Sort by sales amount (highest first) and get top 10
+            const sortedStores = Object.entries(storeData)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+            
+            return {
+                labels: sortedStores.map(([storeName]) => storeName),
+                data: sortedStores.map(([, amount]) => (amount / 10000).toFixed(0)) // Convert to 万円
+            };
+        }
+
+        // Get hourly visits data from transactions
+        async function getHourlyVisitsData(transactions) {
+            const hourlyData = {};
+            
+            // Initialize all hours from 9 to 21
+            for (let hour = 9; hour <= 21; hour++) {
+                hourlyData[hour] = 0;
+            }
+            
+            transactions.forEach(transaction => {
+                if (transaction.visit_date) {
+                    const date = new Date(transaction.visit_date);
+                    const hour = date.getHours();
+                    
+                    if (hour >= 9 && hour <= 21) {
+                        hourlyData[hour]++;
+                    }
+                }
+            });
+            
+            return {
+                labels: Object.keys(hourlyData).map(hour => `${hour}時`),
+                data: Object.values(hourlyData)
+            };
+        }
+
+        // Get service category data from transactions
+        async function getServiceCategoryData(transactions) {
+            const categoryData = {};
+            
+            transactions.forEach(transaction => {
+                if (transaction.service_category) {
+                    if (!categoryData[transaction.service_category]) {
+                        categoryData[transaction.service_category] = 0;
+                    }
+                    categoryData[transaction.service_category]++;
+                }
+            });
+            
+            // Sort by frequency and get top 10
+            const sortedCategories = Object.entries(categoryData)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+            
+            return {
+                labels: sortedCategories.map(([category]) => category),
+                data: sortedCategories.map(([, count]) => count)
+            };
+        }
+
+        // Update all analytics charts with real data
+        function updateAnalyticsCharts(salesData, storeData, hourlyData, serviceData) {
+            // Update monthly sales chart
+            const salesCtx = document.getElementById('salesChart');
+            if (salesCtx && salesCtx.chart) {
+                salesCtx.chart.data.labels = salesData.labels;
+                salesCtx.chart.data.datasets[0].data = salesData.data;
+                salesCtx.chart.data.datasets[0].label = '売上高（万円）';
+                salesCtx.chart.update();
+            }
+            
+            // Update store sales chart
+            const storeCtx = document.getElementById('storeChart');
+            if (storeCtx && storeCtx.chart) {
+                storeCtx.chart.data.labels = storeData.labels;
+                storeCtx.chart.data.datasets[0].data = storeData.data;
+                storeCtx.chart.update();
+            }
+            
+            // Update hourly visits chart
+            const hourlyCtx = document.getElementById('hourlyChart');
+            if (hourlyCtx && hourlyCtx.chart) {
+                hourlyCtx.chart.data.labels = hourlyData.labels;
+                hourlyCtx.chart.data.datasets[0].data = hourlyData.data;
+                hourlyCtx.chart.update();
+            }
+            
+            // Update service category chart
+            const serviceCtx = document.getElementById('serviceChart');
+            if (serviceCtx && serviceCtx.chart) {
+                serviceCtx.chart.data.labels = serviceData.labels;
+                serviceCtx.chart.data.datasets[0].data = serviceData.data;
+                serviceCtx.chart.update();
+            }
+        }
+
+        // ============================================================
+        // END ANALYTICS CHARTS DATA LOADING
         // ============================================================
 
         // グラフの初期化
