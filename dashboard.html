@@ -1465,6 +1465,7 @@
                     // Truncate store names longer than 8 characters to maintain chart size
                     return storeName.length > 8 ? storeName.substring(0, 8) + '...' : storeName;
                 }),
+                fullNames: sortedStores.map(([storeName]) => storeName), // Keep full names for tooltip
                 data: sortedStores.map(([, amount]) => (amount / 10000).toFixed(0)) // Convert to 万円
             };
         }
@@ -1535,6 +1536,10 @@
             if (storeCtx && storeCtx.chart) {
                 storeCtx.chart.data.labels = storeData.labels;
                 storeCtx.chart.data.datasets[0].data = storeData.data;
+                
+                // Store full names for tooltip usage
+                storeCtx.chart.data.fullNames = storeData.fullNames;
+                
                 storeCtx.chart.update();
             }
             
@@ -1604,7 +1609,24 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        // Show full store name in tooltip instead of truncated name
+                                        const chart = context[0].chart;
+                                        const dataIndex = context[0].dataIndex;
+                                        
+                                        // Use full names if available, otherwise fall back to labels
+                                        if (chart.data.fullNames && chart.data.fullNames[dataIndex]) {
+                                            return chart.data.fullNames[dataIndex];
+                                        }
+                                        return chart.data.labels[dataIndex];
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
             }
