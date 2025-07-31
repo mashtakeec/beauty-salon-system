@@ -1461,7 +1461,10 @@
                 .slice(0, 10);
             
             return {
-                labels: sortedStores.map(([storeName]) => storeName),
+                labels: sortedStores.map(([storeName]) => {
+                    // Truncate store names longer than 8 characters to maintain chart size
+                    return storeName.length > 8 ? storeName.substring(0, 8) + '...' : storeName;
+                }),
                 data: sortedStores.map(([, amount]) => (amount / 10000).toFixed(0)) // Convert to 万円
             };
         }
