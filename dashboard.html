@@ -3610,7 +3610,7 @@
                     console.log('✅ DEBUG: Found real store data, will use it!');
                     // Populate table with real store data
                     tbody.innerHTML = storeRankings.map((store, index) => createStoreRankingRow(store, index + 1)).join('');
-                    console.log(`✅ Store ranking populated with ${storeRankings.length} real stores`);
+                    console.log(`✅ Store ranking populated with ${storeRankings.length} stores (complete business view)`);
                     
                     // Add notice for real data
                     const storeTable = tbody.closest('table');
@@ -3765,14 +3765,34 @@
                     transactions: s.transactions
                 })));
                 
+                // FIXED: Show ALL stores including those with 0 sales for complete business view
                 const allStores = Object.values(storeMetrics);
-                const storesWithSales = allStores.filter(store => store.totalSales > 0);
-                const storesWithoutSales = allStores.filter(store => store.totalSales === 0);
                 
-                console.log(`📊 DEBUG: ${allStores.length} total stores, ${storesWithSales.length} with sales, ${storesWithoutSales.length} without sales`);
+                // Add stores that exist but have no sales (show complete business picture)
+                storesData.forEach(storeData => {
+                    const storeId = storeData.store_id;
+                    if (!storeMetrics[storeId]) {
+                        storeMetrics[storeId] = {
+                            storeId: storeId,
+                            storeName: storeData.store_name,
+                            totalSales: 0,
+                            customers: new Set(),
+                            transactions: 0,
+                            staffCount: staffCountByStore[storeId] || 1
+                        };
+                        console.log(`➕ DEBUG: Added store with no sales: ${storeData.store_name}`);
+                    }
+                });
+                
+                const allStoresIncludingZero = Object.values(storeMetrics);
+                const storesWithSales = allStoresIncludingZero.filter(store => store.totalSales > 0);
+                const storesWithoutSales = allStoresIncludingZero.filter(store => store.totalSales === 0);
+                
+                console.log(`📊 DEBUG: ${allStoresIncludingZero.length} total stores, ${storesWithSales.length} with sales, ${storesWithoutSales.length} without sales`);
                 console.log(`🚫 DEBUG: Stores without sales:`, storesWithoutSales.map(s => s.storeName));
                 
-                const rankings = storesWithSales
+                // Show ALL stores (including those with 0 sales) for complete ranking
+                const rankings = allStoresIncludingZero
                     .map(store => {
                         // Generate realistic monthly change (-15% to +35%)
                         const monthlyChange = Math.random() * 50 - 15;
@@ -3798,7 +3818,7 @@
                     })
                     .sort((a, b) => b.monthlySales - a.monthlySales); // Sort by sales desc
                 
-                console.log(`✅ Calculated rankings for ${rankings.length} stores`);
+                console.log(`✅ Calculated rankings for ${rankings.length} stores (including ${storesWithoutSales.length} stores with zero sales)`);
                 return rankings;
                 
             } catch (error) {
