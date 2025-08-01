@@ -3694,6 +3694,11 @@
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
                 
+                console.log(`📅 DEBUG: Current filter - Month: ${currentMonth}, Year: ${currentYear}`);
+                
+                let processedCount = 0;
+                let filteredOutCount = 0;
+                
                 salesData.forEach(sale => {
                     const storeId = sale.store_id;
                     const storeName = storeMap[storeId]?.store_name || `Store_${storeId}`;
@@ -3714,13 +3719,26 @@
                     
                     const store = storeMetrics[storeId];
                     
+                    // DEBUG: Check date filtering
+                    const saleMonth = saleDate.getMonth();
+                    const saleYear = saleDate.getFullYear();
+                    
                     // Only count current month/year for current rankings
-                    if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+                    if (saleMonth === currentMonth && saleYear === currentYear) {
                         store.totalSales += amount;
                         store.customers.add(customerId);
                         store.transactions++;
+                        processedCount++;
+                    } else {
+                        filteredOutCount++;
+                        if (filteredOutCount <= 3) { // Only log first few examples
+                            console.log(`🚫 DEBUG: Filtered out sale - Date: ${sale.sale_date}, Month: ${saleMonth}, Year: ${saleYear}`);
+                        }
                     }
                 });
+                
+                console.log(`📊 DEBUG: Processed ${processedCount} sales, filtered out ${filteredOutCount} sales`);
+                console.log(`🔍 DEBUG: Store metrics created for ${Object.keys(storeMetrics).length} stores`);
                 
                 // Convert to array and calculate final metrics
                 const rankings = Object.values(storeMetrics)
