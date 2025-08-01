@@ -2007,8 +2007,8 @@
                         storeMetrics[storeName].customers.add(transaction.customer_name);
                         storeMetrics[storeName].transactions++;
                         
-                        // Check for staff in different possible column names
-                        const staffName = transaction.service_staff || transaction.staff_name || transaction.booking_staff;
+                        // Check for staff in different possible column names - PRIORITY: booking_staff (official name)
+                        const staffName = transaction.booking_staff || transaction.service_staff || transaction.staff_name;
                         if (staffName) {
                             storeMetrics[storeName].staff.add(staffName);
                         }
@@ -2072,7 +2072,7 @@
                 const currentYear = new Date().getFullYear();
                 
                 staffData.forEach(transaction => {
-                    const staffName = transaction.service_staff || transaction.staff_name || transaction.booking_staff;
+                                            const staffName = transaction.booking_staff || transaction.service_staff || transaction.staff_name;
                     const storeName = transaction.store_name;
                     const amount = parseFloat(transaction.total_amount) || 0;
                     const visitDate = new Date(transaction.visit_date);
@@ -2919,42 +2919,97 @@
             }
         }
 
-        // Load staff data for selected store
+        // Load staff data for selected store using official names from booking_staff
         async function loadStaffData(storeId) {
             const container = document.querySelector('#staffDataTable .data-container');
             
             try {
-                let staffData = [];
+                console.log(`🏪 DEBUG: Loading official staff data for store ${storeId} from booking_staff...`);
                 
-                // Try different table names for staff data
-                const possibleTables = ['m_staff', 'staff', 'staff_master'];
+                // Get store name first
+                const storeData = await supabaseClient.query('m_stores', {
+                    params: `?store_id=eq.${storeId}&select=store_name`
+                });
+                const storeName = storeData[0]?.store_name;
                 
-                for (const tableName of possibleTables) {
-                    try {
-                        staffData = await supabaseClient.query(tableName, {
-                            params: `?store_id=eq.${storeId}&select=*&order=created_at.desc&limit=10`
-                        });
-                        if (staffData.length > 0) break;
-                    } catch (error) {
-                        continue;
-                    }
+                if (!storeName) {
+                    container.innerHTML = '<div class="field">店舗情報が見つかりません</div>';
+                    return;
                 }
+                
+                console.log(`🔍 DEBUG: Looking for staff in store: ${storeName}`);
+                
+                // Get transactions for this store to extract official staff names from booking_staff
+                const transactions = await supabaseClient.query('beauty_salon_transactions', {
+                    params: `?store_name=eq.${encodeURIComponent(storeName)}&select=booking_staff,service_staff,visit_date,total_amount,service_name&order=visit_date.desc`
+                });
+                
+                console.log(`📊 DEBUG: Found ${transactions.length} transactions for ${storeName}`);
+                
+                if (transactions.length === 0) {
+                    container.innerHTML = '<div class="field">この店舗の取引データがありません</div>';
+                    return;
+                }
+                
+                // Extract unique staff names from booking_staff (official names)
+                const staffMap = new Map();
+                
+                transactions.forEach(transaction => {
+                    // Use booking_staff as primary (official name), fallback to service_staff
+                    const officialName = transaction.booking_staff || transaction.service_staff;
+                    
+                    if (officialName && officialName.trim()) {
+                        if (!staffMap.has(officialName)) {
+                            staffMap.set(officialName, {
+                                name: officialName,
+                                totalSales: 0,
+                                transactionCount: 0,
+                                services: new Set(),
+                                lastVisit: null
+                            });
+                        }
+                        
+                        const staff = staffMap.get(officialName);
+                        staff.totalSales += parseFloat(transaction.total_amount) || 0;
+                        staff.transactionCount++;
+                        if (transaction.service_name) {
+                            staff.services.add(transaction.service_name);
+                        }
+                        
+                        // Track most recent visit
+                        const visitDate = new Date(transaction.visit_date);
+                        if (!staff.lastVisit || visitDate > staff.lastVisit) {
+                            staff.lastVisit = visitDate;
+                        }
+                    }
+                });
+                
+                const staffData = Array.from(staffMap.values())
+                    .sort((a, b) => b.totalSales - a.totalSales) // Sort by sales performance
+                    .slice(0, 10); // Limit to top 10
+                
+                console.log(`👥 DEBUG: Found ${staffData.length} official staff members:`, 
+                    staffData.map(s => s.name));
                 
                 if (staffData.length > 0) {
                     container.innerHTML = staffData.map(staff => `
                         <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #48bb78;">
-                            <div class="field"><span class="field-key">名前:</span> ${staff.staff_name || staff.name}</div>
-                            <div class="field"><span class="field-key">役職:</span> ${staff.position || '情報なし'}</div>
-                            <div class="field"><span class="field-key">スキルレベル:</span> ${staff.skill_level ? '⭐'.repeat(staff.skill_level) : '情報なし'}</div>
-                            <div class="field"><span class="field-key">入社日:</span> ${staff.hire_date ? new Date(staff.hire_date).toLocaleDateString('ja-JP') : '情報なし'}</div>
-                            <div class="field"><span class="field-key">状態:</span> ${staff.active_flag ? '在籍' : '退職'}</div>
+                            <div class="field"><span class="field-key">名前 (公式):</span> <strong>${staff.name}</strong></div>
+                            <div class="field"><span class="field-key">売上合計:</span> ¥${Math.round(staff.totalSales).toLocaleString()}</div>
+                            <div class="field"><span class="field-key">取引件数:</span> ${staff.transactionCount}件</div>
+                            <div class="field"><span class="field-key">サービス種類:</span> ${staff.services.size}種類</div>
+                            <div class="field"><span class="field-key">最終活動:</span> ${staff.lastVisit ? staff.lastVisit.toLocaleDateString('ja-JP') : '情報なし'}</div>
+                            <div class="field"><span class="field-key">データソース:</span> <span style="color: #48bb78;">予約担当者 (booking_staff)</span></div>
                         </div>
                     `).join('');
+                    
+                    console.log(`✅ Staff overview updated with ${staffData.length} official staff members from booking_staff`);
                 } else {
-                    container.innerHTML = '<div class="field">この店舗のスタッフデータがありません</div>';
+                    container.innerHTML = '<div class="field">この店舗に予約担当者のデータがありません</div>';
                 }
                 
             } catch (error) {
+                console.error('❌ DEBUG: Error loading official staff data:', error);
                 container.innerHTML = '<div class="field">スタッフデータの読み込みに失敗しました</div>';
             }
         }
@@ -3336,8 +3391,8 @@
                 const staffMetrics = {};
                 
                 transactions.forEach(transaction => {
-                    // Handle different data sources
-                    const staffName = transaction.staff_name || transaction.service_staff || `Staff_${transaction.staff_id}`;
+                    // PRIORITY: Use booking_staff (official name) first, then fallbacks
+                    const staffName = transaction.booking_staff || transaction.staff_name || transaction.service_staff || `Staff_${transaction.staff_id}`;
                     const storeName = transaction.store_name || 'Unknown Store';
                     const amount = parseFloat(transaction.total_amount) || 0;
                     const customerName = transaction.customer_name || `Customer_${transaction.customer_id}`;
