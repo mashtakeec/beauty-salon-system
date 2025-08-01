@@ -3705,8 +3705,19 @@
                 
                 let processedCount = 0;
                 
+                // DEBUG: Track unique store IDs in sales data
+                const uniqueStoreIds = new Set();
+                let salesWithoutStoreId = 0;
+                
                 salesData.forEach(sale => {
                     const storeId = sale.store_id;
+                    
+                    if (!storeId) {
+                        salesWithoutStoreId++;
+                        return; // Skip sales without store_id
+                    }
+                    
+                    uniqueStoreIds.add(storeId);
                     const storeName = storeMap[storeId]?.store_name || `Store_${storeId}`;
                     const amount = parseFloat(sale.total_amount) || 0;
                     const saleDate = new Date(sale.sale_date || sale.visit_date);
@@ -3721,6 +3732,7 @@
                             transactions: 0,
                             staffCount: staffCountByStore[storeId] || 1
                         };
+                        console.log(`🏪 DEBUG: Created metrics for store ${storeId} (${storeName})`);
                     }
                     
                     const store = storeMetrics[storeId];
@@ -3742,6 +3754,8 @@
                 
                 console.log(`📊 DEBUG: Processed ${processedCount} sales successfully`);
                 console.log(`🔍 DEBUG: Store metrics created for ${Object.keys(storeMetrics).length} stores`);
+                console.log(`🏪 DEBUG: Unique store_ids found in sales: [${Array.from(uniqueStoreIds).sort()}]`);
+                console.log(`❌ DEBUG: Sales without store_id: ${salesWithoutStoreId}`);
                 
                 // Convert to array and calculate final metrics
                 console.log(`🏪 DEBUG: All store metrics before filtering:`, Object.values(storeMetrics).map(s => ({
