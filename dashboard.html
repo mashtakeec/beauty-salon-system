@@ -1868,6 +1868,8 @@
         const supabaseClient = {
             async query(table, options = {}) {
                 const url = `${SUPABASE_URL}/rest/v1/${table}${options.params || ''}`;
+                console.log(`🌐 DEBUG: Making API call to: ${url}`);
+                
                 try {
                     const response = await fetch(url, {
                         headers: {
@@ -1877,13 +1879,19 @@
                         }
                     });
                     
+                    console.log(`📡 DEBUG: Response status for ${table}: ${response.status}`);
+                    
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        const errorText = await response.text();
+                        console.error(`❌ DEBUG: HTTP error for ${table}:`, response.status, errorText);
+                        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
                     }
                     
-                    return await response.json();
+                    const data = await response.json();
+                    console.log(`✅ DEBUG: Successfully fetched ${data.length} records from ${table}`);
+                    return data;
                 } catch (error) {
-                    console.error(`Error querying ${table}:`, error);
+                    console.error(`❌ DEBUG: Error querying ${table}:`, error);
                     throw error;
                 }
             }
@@ -1892,36 +1900,49 @@
         // Main function to load all real data
         async function loadRealData() {
             try {
-                console.log('Loading real data from Supabase...');
+                console.log('🚀 DEBUG: Starting loadRealData() function...');
                 
                 // Load transactions - Try both tables
                 let transactions;
                 
                 try {
+                    console.log('🔍 DEBUG: Attempting to load from beauty_salon_transactions...');
                     // First try the main transactions table
                     transactions = await supabaseClient.query('beauty_salon_transactions', {
                         params: '?select=*&order=created_at.desc'
                     });
-                    console.log(`📊 Loaded ${transactions.length} transactions from main table`);
+                    console.log(`📊 DEBUG: Successfully loaded ${transactions.length} transactions from main table`);
+                    console.log('📋 DEBUG: Sample transaction data:', transactions.slice(0, 2));
                 } catch (error) {
-                    console.log('❌ Error loading from main table, trying view...');
+                    console.error('❌ DEBUG: Error loading from main table:', error);
+                    console.log('🔄 DEBUG: Trying fallback approach...');
                     // Fallback to view
                     transactions = await supabaseClient.query('beauty_salon_transactions', {
                         params: '?select=*&order=created_at.desc'
                     });
-                    console.log(`📊 Loaded ${transactions.length} transactions from view`);
+                    console.log(`📊 DEBUG: Loaded ${transactions.length} transactions from view`);
                 }
                 
+                console.log('📊 DEBUG: About to call dashboard update functions...');
+                
                 // Update dashboard sections
+                console.log('1️⃣ DEBUG: Calling updateDashboardStats...');
                 await updateDashboardStats(transactions);
+                
+                console.log('2️⃣ DEBUG: Calling updateTransactionTable...');
                 await updateTransactionTable(transactions.slice(0, 10)); // Show latest 10
+                
+                console.log('3️⃣ DEBUG: Calling populateStoreRanking...');
                 await populateStoreRanking(); // Use new store ranking functionality
+                
+                console.log('4️⃣ DEBUG: Calling loadAIAnalysis...');
                 await loadAIAnalysis();
                 
-                console.log('✅ All real data loaded successfully!');
+                console.log('✅ DEBUG: All real data loaded successfully!');
                 
             } catch (error) {
-                console.error('❌ Error loading real data:', error);
+                console.error('❌ DEBUG: Critical error in loadRealData:', error);
+                console.error('📍 DEBUG: Error stack:', error.stack);
                 // Show error message to user
                 showDataLoadError();
             }
@@ -3561,10 +3582,14 @@
         // Main function to populate store sales ranking
         async function populateStoreRanking() {
             try {
-                console.log('🏪 Loading store sales ranking data...');
+                console.log('🏪 DEBUG: Starting populateStoreRanking...');
                 
                 const tbody = document.getElementById('storeRankingBody');
-                if (!tbody) return;
+                if (!tbody) {
+                    console.error('❌ DEBUG: storeRankingBody element not found!');
+                    return;
+                }
+                console.log('✅ DEBUG: Found storeRankingBody element');
                 
                 // Show loading state
                 tbody.innerHTML = `
@@ -3576,9 +3601,13 @@
                 `;
                 
                 // Calculate store rankings with all available data
+                console.log('📊 DEBUG: About to call calculateStoreRankings...');
                 const storeRankings = await calculateStoreRankings();
+                console.log(`📈 DEBUG: calculateStoreRankings returned ${storeRankings.length} stores`);
+                console.log('🔍 DEBUG: Store rankings data sample:', storeRankings.slice(0, 2));
                 
                 if (storeRankings.length > 0) {
+                    console.log('✅ DEBUG: Found real store data, will use it!');
                     // Populate table with real store data
                     tbody.innerHTML = storeRankings.map((store, index) => createStoreRankingRow(store, index + 1)).join('');
                     console.log(`✅ Store ranking populated with ${storeRankings.length} real stores`);
@@ -3598,8 +3627,10 @@
                         `);
                     }
                 } else {
-                    console.log('⚠️ No real store data found, generating sample data for demonstration...');
+                    console.log('⚠️ DEBUG: No real store data found, generating sample data for demonstration...');
+                    console.log('🔍 DEBUG: This is the exact point where sample data notice is generated!');
                     const sampleStoreRanking = generateSampleStoreRanking();
+                    console.log('📋 DEBUG: Sample store ranking:', sampleStoreRanking.slice(0, 2));
                     tbody.innerHTML = sampleStoreRanking.map((store, index) => createStoreRankingRow(store, index + 1)).join('');
                     
                     // Add a notice that this is sample data
@@ -3626,17 +3657,23 @@
         // Calculate comprehensive store rankings from real data
         async function calculateStoreRankings() {
             try {
-                console.log('🔄 Calculating store rankings from database...');
+                console.log('🔄 DEBUG: Starting calculateStoreRankings...');
                 
                 // Get all available data from the main tables
+                console.log('📊 DEBUG: Loading data from three sources...');
                 const [salesData, storesData, staffData] = await Promise.all([
                     getAllSalesForStoreRanking(),
                     getStoresData(),
                     getStaffByStore()
                 ]);
                 
+                console.log(`📈 DEBUG: Data loaded - Sales: ${salesData.length}, Stores: ${storesData.length}, Staff: ${staffData.length}`);
+                console.log('💰 DEBUG: Sales data sample:', salesData.slice(0, 2));
+                console.log('🏪 DEBUG: Stores data sample:', storesData.slice(0, 2));
+                console.log('👥 DEBUG: Staff data sample:', staffData.slice(0, 2));
+                
                 if (salesData.length === 0) {
-                    console.log('ℹ️ No sales data found for store ranking');
+                    console.log('❌ DEBUG: No sales data found for store ranking - THIS IS THE PROBLEM!');
                     return [];
                 }
                 
@@ -3725,33 +3762,39 @@
         // Get all sales data for store ranking
         async function getAllSalesForStoreRanking() {
             try {
-                console.log('📊 Loading sales data for store ranking...');
+                console.log('📊 DEBUG: Starting getAllSalesForStoreRanking...');
                 
                 // Try different approaches to get sales data
                 let salesData = [];
                 
                 // Method 1: Try t_sales table directly
                 try {
+                    console.log('🔍 DEBUG: Trying t_sales table...');
                     salesData = await supabaseClient.query('t_sales', {
                         params: '?select=*'
                     });
+                    console.log(`📈 DEBUG: t_sales returned ${salesData.length} records`);
                     if (salesData.length > 0) {
-                        console.log(`✅ Loaded ${salesData.length} sales from t_sales table`);
+                        console.log(`✅ DEBUG: Successfully loaded ${salesData.length} sales from t_sales table`);
+                        console.log('💰 DEBUG: t_sales sample:', salesData.slice(0, 2));
                         return salesData;
                     }
                 } catch (error) {
-                    console.log('ℹ️ t_sales table not accessible');
+                    console.log('❌ DEBUG: t_sales table error:', error);
                 }
                 
                 // Method 2: Try beauty_salon_transactions as fallback
                 try {
+                    console.log('🔍 DEBUG: Trying beauty_salon_transactions table...');
                     salesData = await supabaseClient.query('beauty_salon_transactions', {
                         params: '?select=*'
                     });
-                    console.log(`✅ Loaded ${salesData.length} sales from beauty_salon_transactions table`);
+                    console.log(`📈 DEBUG: beauty_salon_transactions returned ${salesData.length} records`);
+                    console.log('💰 DEBUG: beauty_salon_transactions sample:', salesData.slice(0, 2));
+                    console.log(`✅ DEBUG: Successfully loaded ${salesData.length} sales from beauty_salon_transactions table`);
                     return salesData;
                 } catch (error) {
-                    console.log('ℹ️ beauty_salon_transactions table not accessible');
+                    console.log('❌ DEBUG: beauty_salon_transactions table error:', error);
                 }
                 
                 return [];
