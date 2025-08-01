@@ -3672,6 +3672,13 @@
                 console.log('🏪 DEBUG: Stores data sample:', storesData.slice(0, 2));
                 console.log('👥 DEBUG: Staff data sample:', staffData.slice(0, 2));
                 
+                // DEBUG: Check store_id mapping
+                const salesStoreIds = [...new Set(salesData.map(s => s.store_id))].sort();
+                const storeDataIds = storesData.map(s => s.store_id).sort();
+                console.log(`🔍 DEBUG: Unique store_ids in sales:`, salesStoreIds);
+                console.log(`🔍 DEBUG: Store_ids in stores table:`, storeDataIds);
+                console.log(`🔍 DEBUG: Store_ids that don't match:`, salesStoreIds.filter(id => !storeDataIds.includes(id)));
+                
                 if (salesData.length === 0) {
                     console.log('❌ DEBUG: No sales data found for store ranking - THIS IS THE PROBLEM!');
                     return [];
@@ -3737,8 +3744,21 @@
                 console.log(`🔍 DEBUG: Store metrics created for ${Object.keys(storeMetrics).length} stores`);
                 
                 // Convert to array and calculate final metrics
-                const rankings = Object.values(storeMetrics)
-                    .filter(store => store.totalSales > 0)
+                console.log(`🏪 DEBUG: All store metrics before filtering:`, Object.values(storeMetrics).map(s => ({
+                    name: s.storeName, 
+                    sales: s.totalSales, 
+                    customers: s.customers.size,
+                    transactions: s.transactions
+                })));
+                
+                const allStores = Object.values(storeMetrics);
+                const storesWithSales = allStores.filter(store => store.totalSales > 0);
+                const storesWithoutSales = allStores.filter(store => store.totalSales === 0);
+                
+                console.log(`📊 DEBUG: ${allStores.length} total stores, ${storesWithSales.length} with sales, ${storesWithoutSales.length} without sales`);
+                console.log(`🚫 DEBUG: Stores without sales:`, storesWithoutSales.map(s => s.storeName));
+                
+                const rankings = storesWithSales
                     .map(store => {
                         // Generate realistic monthly change (-15% to +35%)
                         const monthlyChange = Math.random() * 50 - 15;

@@ -1,0 +1,5 @@
+[33m8660586[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m Enhance dashboard statistics update functionality in dashboard.html to fetch real-time data from master tables, including active stores, staff, services, and customers. Implement fallback mechanisms for data retrieval and improve error handling for a more robust user experience.
+[33m04f6abe[m スタッフランキング追加
+[33mf422fe4[m 動的店舗データビューアー実装とREADME競合解決
+[33mb72bcfe[m Mac/Linuxスクリプト追加とREADME言語コード更新
+[33m0c8962b[m Update README.md
