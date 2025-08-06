@@ -1,0 +1,49 @@
+# SSH Configuration for Direct Virtual Machine Connection
+# SSH設定ファイル：仮想マシンへの直接接続用
+# File: ~/.ssh/config (Linux/Mac) or %USERPROFILE%\.ssh\config (Windows)
+# ファイル: ~/.ssh/config (Linux/Mac) または %USERPROFILE%\.ssh\config (Windows)
+
+Host pve-server
+    HostName 59.87.187.40
+    User ishitomi
+    Port 22
+
+Host vm-hajime
+    HostName 10.0.0.99
+    User hajime
+    Port 22
+    ProxyJump pve-server
+
+# With this configuration you can connect directly with:
+# この設定により、以下で直接接続できます:
+# ssh vm-hajime
+
+# To avoid passwords, run the following commands:
+# パスワード入力を避けるために、以下のコマンドを実行してください:
+
+# 1. Generate SSH key (if you don't have one):
+# 1. SSHキーを生成（持っていない場合）:
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa_beauty_salon
+
+# 2. Copy key to PVE server:
+# 2. PVEサーバーにキーをコピー:
+ssh-copy-id -i ~/.ssh/id_rsa_beauty_salon.pub ishitomi@59.87.187.40
+
+# 3. Copy key to VM (through proxy):
+# 3. VMにキーをコピー（プロキシ経由）:
+ssh-copy-id -i ~/.ssh/id_rsa_beauty_salon.pub -o ProxyJump=ishitomi@59.87.187.40 hajime@10.0.0.99
+
+# 4. Add to SSH config:
+# 4. SSH設定に追加:
+Host pve-server
+    HostName 59.87.187.40
+    User ishitomi
+    Port 22
+    IdentityFile ~/.ssh/id_rsa_beauty_salon
+
+Host vm-hajime
+    HostName 10.0.0.99
+    User hajime
+    Port 22
+    ProxyJump pve-server
+    IdentityFile ~/.ssh/id_rsa_beauty_salon
