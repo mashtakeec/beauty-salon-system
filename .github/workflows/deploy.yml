@@ -44,3 +44,6 @@ jobs:
         echo "🎉 Dashboard deployed successfully!"
         echo "📍 URL: https://chainon-test.xyz/dashboard.html"
         echo "🕒 Deployed at: $(date)" 
+
+    - name: Claude Code Action Official
+    uses: anthropics/claude-code-action@beta
